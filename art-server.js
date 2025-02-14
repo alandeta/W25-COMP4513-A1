@@ -47,6 +47,25 @@ app.get('/api/galleries/country/:substring', async (req, res) => {
     res.send(data);
 });
 
+// all artists
+app.get('/api/artists', async (req, res) => {
+    const { data, error } = await supabase
+        .from('artists')
+        .select();
+    res.send(data);
+});
+
+// return specific artist based on id
+app.get('/api/artists/:ref', async (req, res) => {
+    const { data, error } = await supabase
+        .from('artists')
+        .select()
+        .eq('artistId', req.params.ref);
+    if (data.length === 0) {
+        return res.send({ error: `Artist with ID #${req.params.ref} not found.` });
+    }
+})
+
 
 
 
