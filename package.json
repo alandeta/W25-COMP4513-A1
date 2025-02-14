@@ -1,0 +1,23 @@
+{
+  "name": "w25-comp4513-a1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "art-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alandeta/W25-COMP4513-A1.git"
+  },
+  "author": "alyssa landeta",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alandeta/W25-COMP4513-A1/issues"
+  },
+  "homepage": "https://github.com/alandeta/W25-COMP4513-A1#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "express": "^4.21.2"
+  }
+}
