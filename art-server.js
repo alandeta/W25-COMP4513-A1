@@ -29,6 +29,9 @@ app.get('/api/galleries/:ref', async (req, res) => {
         .from('galleries')
         .select()
         .eq('galleryId', req.params.ref);
+    if (data.length === 0) {
+        return res.send({ error: `Gallery #${req.params.ref} not found.` });
+    }
     res.send(data);
 });
 
@@ -38,6 +41,9 @@ app.get('/api/galleries/country/:substring', async (req, res) => {
         .from('galleries')
         .select()
         .ilike('galleryCountry', `${req.params.substring}%`);
+    if (data.length === 0) {
+        return res.send({ error: `Gallery country starting with ${req.params.substring} not found.` });
+    }
     res.send(data);
 });
 
