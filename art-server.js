@@ -11,7 +11,7 @@ const supabase = createClient(supaUrl, supaAnonKey);
 app.get('/api/eras', async (req, res) => {
     const { data, error } = await supabase
         .from('eras')
-        .select();
+        .select()
     res.send(data);
 });
 
@@ -23,6 +23,24 @@ app.get('/api/galleries', async (req, res) => {
     res.send(data);   
 });
 
+// returns specified gallery based on id
+app.get('/api/galleries/:ref', async (req, res) => {
+    const { data, error } = await supabase
+        .from('galleries')
+        .select()
+        .eq('galleryId', req.params.ref);
+    res.send(data);
+});
+
+// galleries who's gallery country begins w substring
+app.get('/api/galleries/country/:substring', async (req, res) => {
+    const { data, error } = await supabase 
+        .from('galleries')
+        .select()
+        .ilike('galleryCountry', `${req.params.substring}%`);
+    res.send(data);
+});
+
 
 
 
@@ -32,5 +50,5 @@ app.get('/api/galleries', async (req, res) => {
 
 app.listen(8080, () => {
     console.log('listening on port 8080');
-    console.log('http://localhost:8080')
+    console.log('http://localhost:8080/api/')
 });
