@@ -229,6 +229,42 @@ app.get('/api/paintings/artists/country/:ref', async (req, res) =>{
     res.send(data);
 });
 
+// all genres
+app.get('/api/genres', async (req, res) => {
+    const { data, error } = await supabase
+        .from('genres')
+        .select(`genreId, genreName, description, wikiLink,
+            eras:eraId (eraName, eraYears)`)
+    res.send(data);
+});
+
+// genres by genre id
+app.get('/api/genres/:ref', async (req, res) => {
+    const { data, error } = await supabase
+        .from('genres')
+        .select(`genreId, genreName, description, wikiLink,
+            eras:eraId (eraName, eraYears)`)
+        .eq('genreId', req.params.ref);
+    if (data.length === 0) {
+        return res.send({error: `No genres with genre ID ${req.params.ref} found. `})
+    }
+    res.send(data);
+});
+
+// genres used in given painting -- NOT WORKing
+app.get('/api/genres/paintings/:ref', async (req, res) => {
+    const { data, error } = await supabase
+        .from('paintinggenres')
+        .select(`genreId, genreName, description, wikiLink,
+            eras:eraId (eraName, eraYears) `)
+        .eq('paintingId', req.params.ref)  
+        .order('genreName', { ascending: true }); 
+    if (!data || data.length === 0) {
+        return res.send({ error: `No genres found for painting with ID ${req.params.ref}` });
+    }
+    res.send(data);
+});
+
 
 
 
