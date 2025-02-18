@@ -212,18 +212,17 @@ app.get('/api/paintings/artist/:ref', async (req, res) =>{
 });
 
 // return all paintings by artists whose nationality begins with substring
-//THIS DOESNT WORK
 app.get('/api/paintings/artists/country/:ref', async (req, res) =>{
     const { data, error } = await supabase
         .from('paintings')
         .select(`paintingId, imageFileName, title, museumLink, accessionNumber,
             copyrightText, description, excerpt, yearOfWork, width, height, 
             medium, cost, MSRP, googleLink, googleDescription, wikiLink, jsonAnnotations,
-             artists:artistId (artistId, firstName, lastName, nationality, gender, yearOfBirth, yearOfDeath, details, artistLink),
+             artists!inner (artistId, firstName, lastName, nationality, gender, yearOfBirth, yearOfDeath, details, artistLink),
              galleries:galleryId (galleryId, galleryName, galleryNativeName, galleryCity, galleryAddress, galleryCountry, latitude, longitude, galleryWebSite, flickrPlaceId, yahooWoeId, googlePlaceId)`)
         .filter('artists.nationality', 'ilike', `${req.params.ref}%`)
-        .is('artists', 'not', null)
         .order('title', {ascending:true});
+
     if (!data || data.length === 0) {
         return res.send({error: `No paintings by an artist with nationality starting with ${req.params.ref} found. `})
     }
