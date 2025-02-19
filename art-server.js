@@ -161,6 +161,9 @@ app.get('/api/paintings/search/:substring', async (req, res) => {
 
 // return paintings between two years
 app.get('/api/paintings/years/:startYear/:endYear', async (req, res) => {
+    if (req.params.endYear < req.params.startYear) {
+        return res.status(400).json({ error: "End year cannot be earlier than the start year." });
+    }
     const { data, error } = await supabase
         .from('paintings')
         .select(`paintingId, imageFileName, title, museumLink, accessionNumber,
@@ -252,32 +255,156 @@ app.get('/api/genres/:ref', async (req, res) => {
 });
 
 // genres used in given painting -- NOT WORKing
-app.get('/api/genres/paintings/:ref', async (req, res) => {
-    const { data, error } = await supabase
+app.get('/api/genres/painting/:ref', async (req, res) => {
+    const { data: genreLinks, error: linkError } = await supabase
         .from('paintinggenres')
-        .select(`genreId, genreName, description, wikiLink,
-            eras:eraId (eraName, eraYears) `)
-        .eq('paintingId', req.params.ref)  
-        .order('genreName', { ascending: true }); 
-    if (!data || data.length === 0) {
+        .select('genreId')
+        .eq('paintingId', req.params.ref);
+    if (!genreLinks || genreLinks.length === 0) {
         return res.send({ error: `No genres found for painting with ID ${req.params.ref}` });
     }
-    res.send(data);
+    const genreIds = genreLinks.map(g => g.genreId);
+    const { data: genres, error: genreError } = await supabase
+        .from('genres')
+        .select(`genreId, genreName, description, wikiLink, 
+                 eras:eraId (eraName, eraYears)`)
+        .in('genreId', genreIds)
+        .order('genreName', { ascending: true });
+    res.send(genres);
 });
 
+// return all paintings for a given genre id
+app.get('/api/paintings/genre/:ref', async (req, res) => {
+    const { data: paintingLinks, error: linkError } = await supabase
+        .from('paintinggenres')
+        .select('paintingId')
+        .eq('genreId', req.params.ref);
+    if (!paintingLinks || paintingLinks.length === 0) {
+        return res.send({ error: `No paintings found for genre with ID ${req.params.ref}` });
+    }
+    const paintingIds = paintingLinks.map(p => p.paintingId);
+    const { data: paintings, error: paintingError } = await supabase
+        .from('paintings')
+        .select('paintingId, title, yearOfWork')
+        .in('paintingId', paintingIds)
+        .order('yearOfWork', { ascending: true });
+    res.send(paintings);
+});
 
+// return all paintings for a given era
+app.get('/api/paintings/era/:ref', async (req, res) => {
+    const { data: genres, error: genreError } = await supabase
+        .from('genres')
+        .select('genreId')
+        .eq('eraId', req.params.ref);
+    if (!genres || genres.length === 0) {
+        return res.send({ error: `No genres found for era with ID ${req.params.ref}` });
+    }
+    const genreIds = genres.map(g => g.genreId);
+    const { data: paintingLinks, error: linkError } = await supabase
+        .from('paintinggenres')
+        .select('paintingId')
+        .in('genreId', genreIds);
+    if (!paintingLinks || paintingLinks.length === 0) {
+        return res.send({ error: `No paintings found for era with ID ${req.params.ref}` });
+    }
+    const paintingIds = paintingLinks.map(p => p.paintingId);
+    const { data: paintings, error: paintingError } = await supabase
+        .from('paintings')
+        .select('paintingId, title, yearOfWork')
+        .in('paintingId', paintingIds)
+        .order('yearOfWork', { ascending: true });
+    res.send(paintings);
+});
 
+// return genre name and number of paintings for each genre sorted by number of paintings (fewest to most)
+app.get('/api/counts/genres', async (req, res) => {
+    const { data: paintingGenres, error: linkError } = await supabase
+        .from('paintinggenres')
+        .select('genreId');
+    if (!paintingGenres || paintingGenres.length === 0) {
+        return res.status(404).send({ error: 'No painting genres found.' });
+    }
+    const genreCounts = paintingGenres.reduce((acc, pg) => { //reduce function: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+        acc[pg.genreId] = (acc[pg.genreId] || 0) + 1;
+        return acc;
+    }, {});
+    const { data: genres, error: genreError } = await supabase
+        .from('genres')
+        .select('genreId, genreName');
+    // map genre names with counts and sort
+    const result = Object.entries(genreCounts)
+        .map(([genreId, count]) => {
+            const genre = genres.find(g => g.genreId == genreId);
+            return {
+                genreName: genre ? genre.genreName : 'Unknown Genre',
+                paintingCount: count
+            };
+        })
+        .sort((a, b) => b.paintingCount - a.paintingCount); 
+    res.send(result);
+});
 
+// returns the artist name (firstName space lastName) and the number of paintings for each artist, sorted by num of paintings (most to fewest)
+app.get('/api/counts/artists', async (req, res) => {
+    const { data: paintings, error: paintingsError } = await supabase
+        .from('paintings')
+        .select('artistId');
+    if (!paintings || paintings.length === 0) {
+        return res.send({ error: 'No paintings found.' });
+    }
+    // counts of each artistId
+    const artistCounts = paintings.reduce((acc, p) => {
+        acc[p.artistId] = (acc[p.artistId] || 0) + 1;
+        return acc;
+    }, {});
+    const { data: artists, error: artistError } = await supabase
+        .from('artists')
+        .select('artistId, firstName, lastName');
+    // map artist names with counts
+    const result = Object.entries(artistCounts)
+        .map(([artistId, count]) => {
+            const artist = artists.find(a => a.artistId == artistId);
+            return {
+                artistName: artist ? `${artist.firstName} ${artist.lastName}` : 'Unknown Artist',
+                paintingCount: count
+            };
+        })
+        .sort((a, b) => b.paintingCount - a.paintingCount); 
+    res.send(result);
+});
 
-
-
-
-
-
-
-
-
-
+// return genre name and num of paintings for each genre
+app.get('/api/counts/topgenres/:ref', async (req, res) => {
+    const minPaintings = parseInt(req.params.ref, 10);
+    if (isNaN(minPaintings)) {
+        return res.status(400).send({ error: 'Invalid number of paintings threshold' });
+    }
+    const { data: paintingGenres, error: linkError } = await supabase
+        .from('paintinggenres')
+        .select('genreId');
+    if (!paintingGenres || paintingGenres.length === 0) {
+        return res.send({ error: 'No painting genres found.' });
+    }
+    const genreCounts = paintingGenres.reduce((acc, pg) => {
+        acc[pg.genreId] = (acc[pg.genreId] || 0) + 1;
+        return acc;
+    }, {});
+    const { data: genres, error: genreError } = await supabase
+        .from('genres')
+        .select('genreId, genreName');
+    const result = Object.entries(genreCounts)
+        .map(([genreId, count]) => {
+            const genre = genres.find(g => g.genreId == genreId);
+            return {
+                genreName: genre ? genre.genreName : 'Unknown Genre',
+                paintingCount: count
+            };
+        })
+        .filter(g => g.paintingCount > minPaintings) 
+        .sort((a, b) => b.paintingCount - a.paintingCount); 
+    res.send(result);
+});
 
 app.listen(8080, () => {
     console.log('listening on port 8080');
