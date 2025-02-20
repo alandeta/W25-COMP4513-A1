@@ -406,7 +406,7 @@ app.get('/api/counts/topgenres/:ref', async (req, res) => {
     res.send(result);
 });
 
-app.listen(8080, () => {
-    console.log('listening on port 8080');
-    console.log('http://localhost:8080/api/')
+app.listen(3000, () => {
+    console.log('listening on port 3000');
+    console.log('http://localhost:3000/api/')
 });
