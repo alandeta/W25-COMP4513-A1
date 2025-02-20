@@ -56,8 +56,6 @@ The data is returned in JSON format. The API includes multiple routes that allow
   }
 ]
 ```
-
-### Testing Links
 ### Test Links  
 
 - Eras: [https://w25-comp4513-a1.onrender.com/api/eras](https://w25-comp4513-a1.onrender.com/api/eras)  
