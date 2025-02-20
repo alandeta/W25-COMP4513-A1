@@ -25,6 +25,9 @@ app.get('/api/galleries', async (req, res) => {
 
 // returns specified gallery based on id
 app.get('/api/galleries/:ref', async (req, res) => {
+    if (isNaN(req.params.ref)) {
+        return res.send({ error: `Invalid gallery ID "${req.params.ref}". ID must be a number.` });
+    }
     const { data, error } = await supabase
         .from('galleries')
         .select()
@@ -403,7 +406,15 @@ app.get('/api/counts/topgenres/:ref', async (req, res) => {
         })
         .filter(g => g.paintingCount > minPaintings) 
         .sort((a, b) => b.paintingCount - a.paintingCount); 
+    if (result.length === 0) {
+        return res.status(404).send({ error: `No genres with at least ${minPaintings} paintings.` });
+    }
     res.send(result);
+});
+
+// address invalid API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).send({ error: `Invalid API endpoint: ${req.originalUrl}` });
 });
 
 app.listen(3000, () => {
